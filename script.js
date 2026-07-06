@@ -4,15 +4,23 @@ class ScheduleManager {
         this.schedules = this.loadSchedules();
         this.teachers = this.loadTeachers();
         this.rooms = this.loadRooms();
+        this.subjects = this.loadSubjects();
+        this.courses = this.loadCourses();
+        this.subjectColors = this.loadSubjectColors();
         this.migrateSchedules();
         this.init();
     }
 
     init() {
         this.setupEventListeners();
+        this.ensureUniqueSubjectColors();
         this.render();
         this.renderTeacherOptions();
         this.renderRoomOptions();
+        this.renderSubjectOptions();
+        this.renderCourseOptions();
+        this.checkPrereqs();
+        this.showIntroIfNeeded();
     }
 
     setupEventListeners() {
@@ -26,6 +34,10 @@ class ScheduleManager {
 
         document.getElementById('addTeacherBtn').addEventListener('click', () => this.handleAddTeacher());
         document.getElementById('addRoomBtn').addEventListener('click', () => this.handleAddRoom());
+        const addSubjectBtn = document.getElementById('addSubjectBtn');
+        if (addSubjectBtn) addSubjectBtn.addEventListener('click', () => this.handleAddSubject());
+        const addCourseBtn = document.getElementById('addCourseBtn');
+        if (addCourseBtn) addCourseBtn.addEventListener('click', () => this.handleAddCourse());
         document.getElementById('closeScheduleModal').addEventListener('click', () => this.hideTeacherSchedule());
         document.getElementById('teacherScheduleModal').addEventListener('click', (e) => {
             if (e.target.id === 'teacherScheduleModal') this.hideTeacherSchedule();
@@ -41,6 +53,12 @@ class ScheduleManager {
         ['day', 'startTime', 'endTime'].forEach(id => {
             document.getElementById(id).addEventListener('change', () => this.updateRoomOptions());
         });
+
+        // Re-check prerequisites when select lists change
+        ['teacherSelect','subjectSelect','courseSelect','roomSelect'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('change', () => this.checkPrereqs());
+        });
     }
 
     handleAddTeacher() {
@@ -53,6 +71,7 @@ class ScheduleManager {
         input.value = '';
         this.renderTeacherOptions();
         this.showNotification('Teacher added.', 'success');
+        this.checkPrereqs();
     }
 
     handleAddRoom() {
@@ -66,14 +85,44 @@ class ScheduleManager {
         this.renderRoomOptions();
         this.showNotification('Room added.', 'success');
         this.updateRoomOptions();
+        this.checkPrereqs();
+    }
+
+    // Subjects & Courses
+    handleAddSubject() {
+        const input = document.getElementById('newSubject');
+        const name = input.value.trim();
+        if (!name) return this.showNotification('Please enter a subject to add.', 'error');
+        if (this.subjects.includes(name)) return this.showNotification('Subject already exists.', 'error');
+        this.subjects.push(name);
+        this.saveSubjects();
+        // Ensure newly added subject receives a unique color
+        this.ensureUniqueSubjectColors();
+        input.value = '';
+        this.renderSubjectOptions();
+        this.showNotification('Subject added.', 'success');
+        this.checkPrereqs();
+    }
+
+    handleAddCourse() {
+        const input = document.getElementById('newCourse');
+        const name = input.value.trim();
+        if (!name) return this.showNotification('Please enter a course & year to add.', 'error');
+        if (this.courses.includes(name)) return this.showNotification('Course already exists.', 'error');
+        this.courses.push(name);
+        this.saveCourses();
+        input.value = '';
+        this.renderCourseOptions();
+        this.showNotification('Course added.', 'success');
+        this.checkPrereqs();
     }
 
     handleAddSchedule(e) {
         e.preventDefault();
 
         const teacherName = document.getElementById('teacherSelect').value;
-        const subject = document.getElementById('subject').value.trim();
-        const courseYear = document.getElementById('courseYear').value.trim();
+        const subject = document.getElementById('subjectSelect').value;
+        const courseYear = document.getElementById('courseSelect').value;
         const day = document.getElementById('day').value;
         const startTime = document.getElementById('startTime').value;
         const endTime = document.getElementById('endTime').value;
@@ -250,13 +299,13 @@ class ScheduleManager {
                     <table class="schedule-table">
                         <thead>
                             <tr>
-                                <th>Subject</th>
-                                <th>Course &amp; Year</th>
-                                <th>Day</th>
-                                <th>Time</th>
-                                <th>Room</th>
-                                <th>Action</th>
-                            </tr>
+                                        <th>Subject</th>
+                                        <th>Course &amp; Year</th>
+                                        <th>Day</th>
+                                        <th>Time</th>
+                                        <th>Room</th>
+                                        <th>Action</th>
+                                    </tr>
                         </thead>
                         <tbody>
                             ${teacherSchedules.map(schedule => {
@@ -268,7 +317,7 @@ class ScheduleManager {
                                         <td>${schedule.day}</td>
                                         <td>${this.formatTime(schedule.startTime)} - ${this.formatTime(schedule.endTime)}</td>
                                         <td>${schedule.room}</td>
-                                        <td><button class="delete-btn" onclick="manager.deleteSchedule(${schedule.id})">Delete</button></td>
+                                        <td><button type="button" class="delete-btn" onclick="manager.deleteSchedule(${schedule.id})">Delete</button></td>
                                     </tr>
                                 `;
                             }).join('')}
@@ -328,7 +377,6 @@ class ScheduleManager {
                                 <th>Day</th>
                                 <th>Time</th>
                                 <th>Room</th>
-                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -341,14 +389,13 @@ class ScheduleManager {
                                         <td>${schedule.day}</td>
                                         <td>${this.formatTime(schedule.startTime)} - ${this.formatTime(schedule.endTime)}</td>
                                         <td>${schedule.room}</td>
-                                        <td><button class="delete-btn" onclick="manager.deleteSchedule(${schedule.id})">Delete</button></td>
                                     </tr>
                                 `;
                             }).join('')}
                         </tbody>
                     </table>
                     <div class="view-row">
-                        <button class="btn-view" onclick="manager.showTeacherSchedule('${teacherName.replace(/'/g, "\\'")}')">View Timetable</button>
+                        <button type="button" class="btn-view" onclick="manager.showTeacherSchedule('${teacherName.replace(/'/g, "\\'")}')">View Timetable</button>
                     </div>
                 </div>
             `;
@@ -358,6 +405,8 @@ class ScheduleManager {
     renderManageView() {
         const teacherListManage = document.getElementById('teacherListManage');
         const roomListManage = document.getElementById('roomListManage');
+        const subjectListManage = document.getElementById('subjectListManage');
+        const courseListManage = document.getElementById('courseListManage');
 
         if (this.teachers.length === 0) {
             teacherListManage.innerHTML = '<p class="empty-message">No teachers added yet.</p>';
@@ -371,8 +420,8 @@ class ScheduleManager {
                             <div class="manage-item-subtext">${count} schedule${count === 1 ? '' : 's'}</div>
                         </div>
                         <div class="manage-actions">
-                            <button class="edit-btn" onclick="manager.handleEditTeacher('${teacherName.replace(/'/g, "\\'")}')">Edit</button>
-                            <button class="delete-btn" onclick="manager.handleDeleteTeacher('${teacherName.replace(/'/g, "\\'")}')">Delete</button>
+                            <button type="button" class="edit-btn" onclick="manager.handleEditTeacher('${teacherName.replace(/'/g, "\\'")}')">Edit</button>
+                            <button type="button" class="delete-btn" onclick="manager.handleDeleteTeacher('${teacherName.replace(/'/g, "\\'")}')">Delete</button>
                         </div>
                     </div>
                 `;
@@ -391,12 +440,58 @@ class ScheduleManager {
                             <div class="manage-item-subtext">${count} schedule${count === 1 ? '' : 's'}</div>
                         </div>
                         <div class="manage-actions">
-                            <button class="edit-btn" onclick="manager.handleEditRoom('${roomName.replace(/'/g, "\\'")}')">Edit</button>
-                            <button class="delete-btn" onclick="manager.handleDeleteRoom('${roomName.replace(/'/g, "\\'")}')">Delete</button>
+                            <button type="button" class="edit-btn" onclick="manager.handleEditRoom('${roomName.replace(/'/g, "\\'")}')">Edit</button>
+                            <button type="button" class="delete-btn" onclick="manager.handleDeleteRoom('${roomName.replace(/'/g, "\\'")}')">Delete</button>
                         </div>
                     </div>
                 `;
             }).join('');
+        }
+
+        // Subjects
+        if (subjectListManage) {
+            if (this.subjects.length === 0) {
+                subjectListManage.innerHTML = '<p class="empty-message">No subjects added yet.</p>';
+            } else {
+                subjectListManage.innerHTML = this.subjects.sort((a, b) => a.localeCompare(b)).map(subjectName => {
+                    const count = this.schedules.filter(s => s.subject === subjectName).length;
+                    return `
+                        <div class="manage-item">
+                            <div>
+                                <div class="manage-item-title">${subjectName}</div>
+                                <div class="manage-item-subtext">${count} schedule${count === 1 ? '' : 's'}</div>
+                            </div>
+                            <div class="manage-actions">
+                                <button type="button" class="edit-btn" onclick="manager.handleEditSubject('${subjectName.replace(/'/g, "\\'")}')">Edit</button>
+                                <button type="button" class="delete-btn" onclick="manager.handleDeleteSubject('${subjectName.replace(/'/g, "\\'")}')">Delete</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        // Courses
+        if (courseListManage) {
+            if (this.courses.length === 0) {
+                courseListManage.innerHTML = '<p class="empty-message">No courses added yet.</p>';
+            } else {
+                courseListManage.innerHTML = this.courses.sort((a, b) => a.localeCompare(b)).map(courseName => {
+                    const count = this.schedules.filter(s => s.courseYear === courseName).length;
+                    return `
+                        <div class="manage-item">
+                            <div>
+                                <div class="manage-item-title">${courseName}</div>
+                                <div class="manage-item-subtext">${count} schedule${count === 1 ? '' : 's'}</div>
+                            </div>
+                            <div class="manage-actions">
+                                <button type="button" class="edit-btn" onclick="manager.handleEditCourse('${courseName.replace(/'/g, "\\'")}')">Edit</button>
+                                <button type="button" class="delete-btn" onclick="manager.handleDeleteCourse('${courseName.replace(/'/g, "\\'")}')">Delete</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
         }
     }
 
@@ -468,6 +563,75 @@ class ScheduleManager {
         this.showNotification('Room deleted.', 'success');
     }
 
+    // Subject / Course edit/delete handlers
+    handleEditSubject(oldName) {
+        const newNameRaw = prompt('Enter a new name for the subject:', oldName);
+        const newName = newNameRaw ? newNameRaw.trim() : '';
+        if (!newName) return;
+        if (this.subjects.some(s => s.toLowerCase() === newName.toLowerCase() && s !== oldName)) {
+            return this.showNotification('A subject with that name already exists.', 'error');
+        }
+        const index = this.subjects.findIndex(s => s === oldName);
+        if (index === -1) return;
+        this.subjects[index] = newName;
+        this.schedules = this.schedules.map(s => s.subject === oldName ? { ...s, subject: newName } : s);
+        this.saveSubjects();
+        this.saveSchedules();
+        this.ensureUniqueSubjectColors();
+        this.render();
+        this.showNotification('Subject updated.', 'success');
+    }
+
+    handleDeleteSubject(name) {
+        const related = this.schedules.filter(s => s.subject === name).length;
+        if (related > 0) {
+            const cascade = confirm(`${name} is used in ${related} schedule(s). Click OK to delete the subject and remove those schedule entries, or Cancel to keep them.`);
+            if (!cascade) return this.showNotification('Deletion cancelled. Remove schedules first to delete subject.', 'error');
+            this.schedules = this.schedules.filter(s => s.subject !== name);
+        } else {
+            if (!confirm(`Delete subject ${name}?`)) return;
+        }
+        this.subjects = this.subjects.filter(s => s !== name);
+        this.saveSubjects();
+        this.saveSchedules();
+        this.ensureUniqueSubjectColors();
+        this.render();
+        this.showNotification('Subject deleted.', 'success');
+    }
+
+    handleEditCourse(oldName) {
+        const newNameRaw = prompt('Enter a new name for the course & year:', oldName);
+        const newName = newNameRaw ? newNameRaw.trim() : '';
+        if (!newName) return;
+        if (this.courses.some(c => c.toLowerCase() === newName.toLowerCase() && c !== oldName)) {
+            return this.showNotification('A course with that name already exists.', 'error');
+        }
+        const index = this.courses.findIndex(c => c === oldName);
+        if (index === -1) return;
+        this.courses[index] = newName;
+        this.schedules = this.schedules.map(s => s.courseYear === oldName ? { ...s, courseYear: newName } : s);
+        this.saveCourses();
+        this.saveSchedules();
+        this.render();
+        this.showNotification('Course updated.', 'success');
+    }
+
+    handleDeleteCourse(name) {
+        const related = this.schedules.filter(s => s.courseYear === name).length;
+        if (related > 0) {
+            const cascade = confirm(`${name} is used in ${related} schedule(s). Click OK to delete the course and remove those schedule entries, or Cancel to keep them.`);
+            if (!cascade) return this.showNotification('Deletion cancelled. Remove schedules first to delete course.', 'error');
+            this.schedules = this.schedules.filter(s => s.courseYear !== name);
+        } else {
+            if (!confirm(`Delete course ${name}?`)) return;
+        }
+        this.courses = this.courses.filter(c => c !== name);
+        this.saveCourses();
+        this.saveSchedules();
+        this.render();
+        this.showNotification('Course deleted.', 'success');
+    }
+
     switchView(e) {
         document.querySelectorAll('.toggle-btn').forEach(btn => btn.classList.remove('active'));
         e.target.classList.add('active');
@@ -519,10 +683,11 @@ class ScheduleManager {
             const endH = Math.floor(endMinutes / 60);
             const endM = endMinutes % 60;
             const format = (h, m) => `${((h + 11) % 12) + 1}:${m.toString().padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+            const label = `${format(startH, startM)} - ${format(endH, endM)}`;
             slots.push({
                 start: `${String(startH).padStart(2, '0')}:${String(startM).padStart(2, '0')}`,
                 end: `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`,
-                label: `${format(startH, startM)} - ${format(endH, endM)}`
+                label
             });
             minutes += 30;
         }
@@ -555,6 +720,9 @@ class ScheduleManager {
             }
             if (endIdx === -1) return;
             const span = endIdx - startIdx + 1;
+            // compute colors now and bake into the cell to avoid later lookup issues
+            const bg = this.getColorForSubject(schedule.subject);
+            const fg = this.getTextColorForBg(bg);
             const content = `
                 <div class="cell-content">
                     <div class="subject">${schedule.subject}</div>
@@ -563,23 +731,39 @@ class ScheduleManager {
                 </div>
             `;
             // Place content at startIdx and mark following indices as skipped
-            dayCells[day][startIdx] = { content, span, id: schedule.id };
+            dayCells[day][startIdx] = { content, span, id: schedule.id, styleAttr: ` style="background:${bg}; color:${fg};"` };
             for (let k = startIdx + 1; k <= endIdx; k++) {
                 dayCells[day][k] = { skip: true };
             }
         });
 
         const headerRow = ['<tr><th>Time</th>' + days.map(day => `<th>${day}</th>`).join('') + '</tr>'];
-        const rows = slots.map((slot, rowIdx) => {
+        const rows = [];
+        const lunchStartIdx = slots.findIndex(s => s.start === '12:00');
+        for (let rowIdx = 0; rowIdx < slots.length; rowIdx++) {
+            // If this is the start of the lunch hour, render a single merged "LUNCH" row spanning all days and skip the next slot
+            if (rowIdx === lunchStartIdx) {
+                // create a combined time label from this slot start to the next slot end (12:00 - 1:00 PM)
+                const nextSlot = slots[rowIdx + 1];
+                const timeLabel = nextSlot ? `${slots[rowIdx].label.split(' - ')[0]} - ${nextSlot.label.split(' - ')[1]}` : slots[rowIdx].label;
+                rows.push(`<tr><td class="slot-label">${timeLabel}</td><td class="lunch-cell" colspan="${days.length}">LUNCH</td></tr>`);
+                rowIdx++; // skip the 12:30 slot
+                continue;
+            }
+
+            // Normal row rendering
             const cols = days.map(day => {
+                // If this slot is within the lunch hour, don't render per-day cells (they're replaced by the LUNCH row)
+                if (lunchStartIdx !== -1 && (rowIdx === lunchStartIdx || rowIdx === lunchStartIdx + 1)) return '';
                 const cell = dayCells[day][rowIdx];
                 if (!cell) return '<td></td>';
                 if (cell.skip) return '';
                 const rowspanAttr = cell.span && cell.span > 1 ? ` rowspan="${cell.span}"` : '';
-                return `<td${rowspanAttr}>${cell.content}</td>`;
+                const styleAttr = cell.styleAttr || '';
+                return `<td${rowspanAttr}${styleAttr}>${cell.content}</td>`;
             }).join('');
-            return `<tr><td class="slot-label">${slot.label}</td>${cols}</tr>`;
-        });
+            rows.push(`<tr><td class="slot-label">${slots[rowIdx].label}</td>${cols}</tr>`);
+        }
 
         return `
             <div class="schedule-grid-wrapper">
@@ -604,7 +788,16 @@ class ScheduleManager {
 
             if (!jsPDFClass) return reject(new Error('jsPDF is not loaded'));
 
-            html2canvas(element, { scale: 2 }).then(canvas => {
+            // Clone element and expand it so html2canvas renders the full content (not only the scrolled viewport)
+            const clone = element.cloneNode(true);
+            clone.style.position = 'absolute';
+            clone.style.left = '-9999px';
+            clone.style.top = '0';
+            clone.style.width = element.scrollWidth + 'px';
+            clone.style.height = 'auto';
+            clone.style.overflow = 'visible';
+            document.body.appendChild(clone);
+            html2canvas(clone, { scale: 2, scrollY: -window.scrollY }).then(canvas => {
                 try {
                     const imgData = canvas.toDataURL('image/png');
                     const pdf = new jsPDFClass({ orientation: 'landscape', unit: 'pt', format: 'a4' });
@@ -620,11 +813,17 @@ class ScheduleManager {
                     const y = 20;
 
                     pdf.addImage(imgData, 'PNG', x, y, renderWidth, renderHeight);
+                    // cleanup
+                    if (clone && clone.parentNode) clone.parentNode.removeChild(clone);
                     resolve(pdf);
                 } catch (err) {
+                    if (clone && clone.parentNode) clone.parentNode.removeChild(clone);
                     reject(err);
                 }
-            }).catch(err => reject(err));
+            }).catch(err => {
+                if (clone && clone.parentNode) clone.parentNode.removeChild(clone);
+                reject(err);
+            });
         });
     }
 
@@ -700,14 +899,159 @@ class ScheduleManager {
     saveRooms() { localStorage.setItem('rooms', JSON.stringify(this.rooms)); }
     loadRooms() { const d = localStorage.getItem('rooms'); return d ? JSON.parse(d) : []; }
 
+    // subjects & courses
+    saveSubjects() { localStorage.setItem('subjects', JSON.stringify(this.subjects)); }
+    loadSubjects() { const d = localStorage.getItem('subjects'); return d ? JSON.parse(d) : []; }
+    saveCourses() { localStorage.setItem('courses', JSON.stringify(this.courses)); }
+    loadCourses() { const d = localStorage.getItem('courses'); return d ? JSON.parse(d) : []; }
+    saveSubjectColors() { localStorage.setItem('subjectColors', JSON.stringify(this.subjectColors || {})); }
+    loadSubjectColors() {
+        const d = localStorage.getItem('subjectColors');
+        if (!d) return {};
+        try {
+            const parsed = JSON.parse(d) || {};
+            const normalized = {};
+            Object.keys(parsed).forEach(k => {
+                const nk = k ? k.trim() : k;
+                if (!(nk in normalized)) normalized[nk] = parsed[k];
+            });
+            return normalized;
+        } catch (e) {
+            return {};
+        }
+    }
+
+    // color palette and assignment
+    getColorForSubject(name) {
+        if (!name) return null;
+        const key = name.trim();
+        if (!this.subjectColors) this.subjectColors = {};
+        if (this.subjectColors[key]) return this.subjectColors[key];
+        const palette = [
+            '#ffd6a5','#fdffb6','#caffbf','#9bf6ff','#a0c4ff','#bdb2ff','#ffc6ff','#ffadad','#bde0fe','#d0f4de'
+        ];
+        // deterministic assignment: hash name to palette index, but avoid duplicates
+        let hash = 0;
+        for (let i = 0; i < key.length; i++) hash = ((hash << 5) - hash) + key.charCodeAt(i);
+        const preferredIdx = Math.abs(hash) % palette.length;
+        const usedColors = Object.values(this.subjectColors || {});
+        // prefer the hashed color if not used yet
+        let color = palette[preferredIdx];
+        if (usedColors.includes(color)) {
+            // find first palette color that's not used
+            const available = palette.find(c => !usedColors.includes(c));
+            if (available) color = available;
+            else {
+                // palette exhausted; generate a distinct HSL-based color
+                const hue = Math.abs(hash) % 360;
+                color = (function(h,s,l){
+                    s /= 100; l /= 100;
+                    const k = n => (n + h/30) % 12;
+                    const a = s * Math.min(l, 1 - l);
+                    const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+                    const r = Math.round(255 * f(0));
+                    const g = Math.round(255 * f(8));
+                    const b = Math.round(255 * f(4));
+                    const toHex = v => v.toString(16).padStart(2, '0');
+                    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+                })(hue, 65, 75);
+            }
+        }
+        this.subjectColors[key] = color;
+        this.saveSubjectColors();
+        return color;
+    }
+
+    // choose readable text color based on background
+    getTextColorForBg(bg) {
+        if (!bg) return '#000';
+        // compute luminance
+        const c = bg.replace('#','');
+        const r = parseInt(c.substring(0,2),16);
+        const g = parseInt(c.substring(2,4),16);
+        const b = parseInt(c.substring(4,6),16);
+        const luminance = (0.299*r + 0.587*g + 0.114*b)/255;
+        return luminance > 0.6 ? '#000' : '#fff';
+    }
+
+    // Ensure each distinct subject has a unique color assignment
+    ensureUniqueSubjectColors() {
+        if (!this.subjects) this.subjects = [];
+        if (!this.subjectColors) this.subjectColors = this.loadSubjectColors() || {};
+        const palette = [
+            '#ffd6a5','#fdffb6','#caffbf','#9bf6ff','#a0c4ff','#bdb2ff','#ffc6ff','#ffadad','#bde0fe','#d0f4de'
+        ];
+        const used = new Set();
+        // First pass: keep any existing mapping for subjects present, but mark used colors
+        this.subjects.forEach(s => {
+            const key = s ? s.trim() : s;
+            const col = this.subjectColors[key];
+            if (col && !used.has(col)) used.add(col);
+        });
+        // Second pass: assign colors to subjects missing a mapping or colliding
+        // Iterate subjects in alphabetical order for determinism
+        this.subjects.slice().sort((a,b)=>a.localeCompare(b)).forEach(s => {
+            const key = s ? s.trim() : s;
+            let col = this.subjectColors[key];
+            if (!col || (col && Array.from(used).filter(c => c === col).length > 1)) {
+                // find first palette color not yet used
+                const avail = palette.find(c => !used.has(c));
+                if (avail) {
+                    col = avail;
+                } else {
+                    // generate HSL-based color using golden angle to spread hues
+                    const hue = (used.size * 137.508) % 360;
+                    const s_v = 65;
+                    const l_v = 70;
+                    const h = Math.round(hue);
+                    // convert hsl to hex
+                    const hex = (function(h,s,l){
+                        s /= 100; l /= 100;
+                        const c = (1 - Math.abs(2*l - 1)) * s;
+                        const x = c * (1 - Math.abs((h/60)%2 - 1));
+                        const m = l - c/2;
+                        let r=0,g=0,b=0;
+                        if (0<=h && h<60){ r=c; g=x; b=0; }
+                        else if (60<=h && h<120){ r=x; g=c; b=0; }
+                        else if (120<=h && h<180){ r=0; g=c; b=x; }
+                        else if (180<=h && h<240){ r=0; g=x; b=c; }
+                        else if (240<=h && h<300){ r=x; g=0; b=c; }
+                        else { r=c; g=0; b=x; }
+                        const toHex = v => Math.round((v + m)*255).toString(16).padStart(2,'0');
+                        return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+                    })(h, s_v, l_v);
+                    col = hex;
+                }
+                this.subjectColors[key] = col;
+                used.add(col);
+            } else {
+                // existing mapping and unique — ensure marked used
+                used.add(col);
+            }
+        });
+        this.saveSubjectColors();
+    }
+
     renderTeacherOptions() {
         const sel = document.getElementById('teacherSelect');
-        sel.innerHTML = '<option value="">-- Select Teacher --</option>' + this.teachers.map(t => `<option value="${t}">${t}</option>`).join('');
+        sel.innerHTML = '<option value="">-- Select Teacher --</option>' + this.teachers.slice().sort((a,b)=>a.localeCompare(b)).map(t => `<option value="${t}">${t}</option>`).join('');
+    }
+
+    renderSubjectOptions() {
+        const sel = document.getElementById('subjectSelect');
+        if (!sel) return;
+        sel.innerHTML = '<option value="">-- Select Subject --</option>' + this.subjects.slice().sort((a,b)=>a.localeCompare(b)).map(s => `<option value="${s}">${s}</option>`).join('');
+    }
+
+    renderCourseOptions() {
+        const sel = document.getElementById('courseSelect');
+        if (!sel) return;
+        sel.innerHTML = '<option value="">-- Select Course & Year --</option>' + this.courses.slice().sort((a,b)=>a.localeCompare(b)).map(c => `<option value="${c}">${c}</option>`).join('');
     }
 
     renderRoomOptions() {
         const sel = document.getElementById('roomSelect');
-        sel.innerHTML = '<option value="">-- Select Room --</option>' + this.rooms.map(r => `<option value="${r}">${r}</option>`).join('');
+        sel.innerHTML = '<option value="">-- Select Room --</option>' + this.rooms.slice().sort((a,b)=>a.localeCompare(b)).map(r => `<option value="${r}">${r}</option>`).join('');
     }
 
     // remove rooms that conflict with selected time/day
@@ -728,9 +1072,47 @@ class ScheduleManager {
             return !this.schedules.some(s => s.room.toLowerCase() === r.toLowerCase() && s.day === day && this.timesOverlap(s.startTime, s.endTime, startTime, endTime));
         });
 
-        sel.innerHTML = '<option value="">-- Select Room --</option>' + available.map(r => `<option value="${r}">${r}</option>`).join('');
+        // sort available rooms
+        const sortedAvailable = available.slice().sort((a,b)=>a.localeCompare(b));
+        sel.innerHTML = '<option value="">-- Select Room --</option>' + sortedAvailable.map(r => `<option value="${r}">${r}</option>`).join('');
         const hint = document.getElementById('roomHint');
         hint.textContent = available.length === 0 ? 'No rooms available for this time.' : 'Room list updated for selected time.';
+    }
+
+    showIntroIfNeeded() {
+        try {
+            const seen = localStorage.getItem('seenIntro');
+            if (seen === 'true') return;
+            const modal = document.getElementById('introModal');
+            if (!modal) return;
+            modal.style.display = 'flex';
+            const btn = document.getElementById('introDismissBtn');
+            const chk = document.getElementById('introDontShow');
+            const closeFn = () => {
+                if (chk && chk.checked) localStorage.setItem('seenIntro', 'true');
+                modal.style.display = 'none';
+            };
+            if (btn) btn.addEventListener('click', closeFn, { once: true });
+            const manageBtn = document.getElementById('introManageBtn');
+            if (manageBtn) manageBtn.addEventListener('click', () => {
+                closeFn();
+                // open Manage Lists view
+                const toggle = document.querySelector('[data-view="manage"]');
+                if (toggle) toggle.click();
+            });
+        } catch (e) {
+            // ignore
+        }
+    }
+
+    // Enable or disable the schedule form submit depending on whether prerequisite lists exist
+    checkPrereqs() {
+        const btn = document.querySelector('#scheduleForm .btn-add');
+        const ok = this.teachers.length > 0 && this.subjects.length > 0 && this.courses.length > 0 && this.rooms.length > 0;
+        if (btn) {
+            btn.disabled = !ok;
+            btn.title = ok ? '' : 'Please add teachers, subjects, courses & rooms before plotting schedules.';
+        }
     }
 }
 

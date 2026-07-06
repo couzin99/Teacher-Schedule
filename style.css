@@ -265,10 +265,48 @@ header p {
     color: #7a0b0b;
 }
 
+/* Narrow the Time column so it doesn't dominate the layout */
+.schedule-grid th:first-child,
+.schedule-grid td.slot-label {
+    width: 160px;
+    min-width: 160px;
+    max-width: 220px;
+    white-space: normal;
+    overflow: visible;
+    font-size: 0.95em;
+}
+.schedule-grid th:first-child {
+    width: 160px;
+    min-width: 160px;
+}
+
+@media (max-width: 900px) {
+    .schedule-grid th:first-child,
+    .schedule-grid td.slot-label { width: 90px; max-width: 110px; font-size: 0.9em; }
+}
+
+/* Lunch row styling */
+.lunch-cell {
+    background: #fff3f3;
+    color: #7a0b0b;
+    font-weight: 800;
+    text-align: center;
+    padding: 12px 6px;
+}
+
 /* Center merged cell content and arrange lines */
 .schedule-grid td {
     vertical-align: middle;
     text-align: center;
+}
+
+/* Fixed-size cells: keep width/height constant regardless of content */
+.schedule-grid td:not(.slot-label) {
+    width: 160px;
+    min-width: 160px;
+    max-width: 160px;
+    height: 72px;
+    overflow: hidden;
 }
 
 .schedule-grid .cell-content {
@@ -276,6 +314,11 @@ header p {
     flex-direction: column;
     align-items: center;
     gap: 6px;
+}
+.schedule-grid .cell-content {
+    white-space: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .schedule-grid .cell-content .subject {
@@ -438,6 +481,65 @@ header p {
     color: #6a6a6a;
     font-size: 0.95em;
 }
+
+
+/* Intro modal (scoped to #introModal so it doesn't affect other modals) */
+#introModal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1200;
+}
+#introModal .modal-content {
+    background: #fff;
+    padding: 18px;
+    border-radius: 8px;
+    max-width: 520px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+#introModal .modal-content h3 { margin-top: 0; }
+#introModal .btn-action { padding:8px 12px; background:#2b7cff; color:#fff; border:none; border-radius:4px; cursor:pointer; }
+
+/* Teacher schedule modal: wider, landscape-friendly */
+#teacherScheduleModal .modal-content {
+    width: 1200px;
+    max-width: 96vw;
+    height: 72vh;
+    padding: 18px;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+#scheduleGridContainer {
+    width: 100%;
+    height: calc(100% - 72px);
+    overflow: auto;
+}
+
+.intro-body { display:flex; gap:16px; align-items:flex-start; }
+.intro-icon { font-size:46px; width:68px; height:68px; display:flex; align-items:center; justify-content:center; background:linear-gradient(180deg,#fdecef,#fff); border-radius:12px; border:1px solid #ffdede; }
+.intro-copy { flex:1; }
+.intro-copy .muted { color:#555; margin-bottom:10px; }
+.intro-steps { margin:8px 0 12px 18px; color:#333; }
+.intro-steps li { margin:6px 0; }
+.intro-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:6px; }
+.intro-actions .btn-view { background: linear-gradient(180deg, #a21b1b 0%, #7a0b0b 100%); color:#fff; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; }
+.intro-dontshow { display:block; margin-top:10px; color:#666; font-size:0.95em; }
+
+.intro-close {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    background: transparent;
+    border: none;
+    font-size: 22px;
+    color: #666;
+    cursor: pointer;
+}
+.intro-close:hover { color: #000; }
 
 .manage-actions {
     display: flex;

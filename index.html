@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Schedule Manager</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="assets/logo.png">
 </head>
 <body>
     <div class="container">
@@ -30,13 +31,25 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="subject">Subject:</label>
-                        <input type="text" id="subject" required placeholder="e.g., Mathematics">
+                        <label for="subjectSelect">Subject:</label>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <select id="subjectSelect" required>
+                                <option value="">-- Select Subject --</option>
+                            </select>
+                            <input type="text" id="newSubject" placeholder="Add subject">
+                            <button type="button" id="addSubjectBtn" class="toggle-btn">Add</button>
+                        </div>
                     </div>
 
                     <div class="form-group">
-                        <label for="courseYear">Course &amp; Year:</label>
-                        <input type="text" id="courseYear" required placeholder="e.g., BSCpE-2 &amp; 2nd Year">
+                        <label for="courseSelect">Course &amp; Year:</label>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <select id="courseSelect" required>
+                                <option value="">-- Select Course & Year --</option>
+                            </select>
+                            <input type="text" id="newCourse" placeholder="Add course & year">
+                            <button type="button" id="addCourseBtn" class="toggle-btn">Add</button>
+                        </div>
                     </div>
 
                     <div class="form-group">
@@ -115,9 +128,21 @@
                             </div>
                         </div>
                         <div class="manage-section">
+                            <h3>Subjects</h3>
+                            <div id="subjectListManage" class="manage-list">
+                                <p class="empty-message">No subjects added yet.</p>
+                            </div>
+                        </div>
+                        <div class="manage-section">
                             <h3>Rooms</h3>
                             <div id="roomListManage" class="manage-list">
                                 <p class="empty-message">No rooms added yet.</p>
+                            </div>
+                        </div>
+                        <div class="manage-section">
+                            <h3>Courses &amp; Years</h3>
+                            <div id="courseListManage" class="manage-list">
+                                <p class="empty-message">No courses added yet.</p>
                             </div>
                         </div>
                     </div>
@@ -138,9 +163,60 @@
         </div>
     </div>
 
+    <!-- Intro modal (moved out of form to avoid layout issues) -->
+    <div id="introModal" class="modal" style="display:none;">
+        <div class="modal-content" role="dialog" aria-labelledby="introTitle">
+            <button id="introCloseBtn" class="intro-close" aria-label="Close">×</button>
+            <div class="intro-body">
+                <div class="intro-icon">🎓</div>
+                <div class="intro-copy">
+                    <h3 id="introTitle">Quick Setup</h3>
+                    <p class="muted">Add the core lists first so the schedule builder works smoothly. You can edit or add items later from <strong>Manage Lists</strong>.</p>
+                    <ul class="intro-steps">
+                        <li><strong>Teachers</strong> — add instructors you'll schedule.</li>
+                        <li><strong>Subjects</strong> — add course subjects (e.g., Mathematics).</li>
+                        <li><strong>Course &amp; Year</strong> — add entries like <em>BSCpE-2 &amp; 2nd Year</em>.</li>
+                        <li><strong>Rooms</strong> — add available rooms for assignments.</li>
+                    </ul>
+                    <div class="intro-actions">
+                        <button id="introManageBtn" class="btn-action">Go to Manage Lists</button>
+                        <button id="introDismissBtn" class="btn-view">Got it</button>
+                    </div>
+                    <label class="intro-dontshow"><input type="checkbox" id="introDontShow"> Don't show again</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- PDF / Canvas libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <!-- Fallback loader: some browsers' Tracking Prevention may block CDNs. -->
+    <script>
+    (function(){
+        function loadScript(src, cb){
+            var s = document.createElement('script');
+            s.src = src; s.onload = cb; s.onerror = cb; document.head.appendChild(s);
+        }
+        function tryFallbacks(){
+            if (typeof html2canvas === 'undefined') {
+                loadScript('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js');
+            }
+            if (!(window.jspdf || window.jsPDF)) {
+                loadScript('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js');
+            }
+            setTimeout(function(){
+                if (typeof html2canvas === 'undefined' || !(window.jspdf || window.jsPDF)) {
+                    console.warn('PDF libraries unavailable — Tracking Prevention may be blocking CDNs.');
+                    var note = document.getElementById('notification');
+                    if (note) { note.innerHTML = 'PDF libraries blocked by browser; download vendor files to assets/ or allow CDN access.'; note.className='notification error'; }
+                }
+            }, 1500);
+        }
+        setTimeout(tryFallbacks, 200);
+    })();
+    </script>
 
     <script src="script.js"></script>
 </body>
