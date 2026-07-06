@@ -136,16 +136,68 @@ header p {
 .btn-view {
     margin-top: 16px;
     padding: 10px 18px;
-    background: #7a0b0b;
+    background: linear-gradient(180deg, #a21b1b 0%, #7a0b0b 100%);
     color: white;
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     cursor: pointer;
     font-weight: 700;
+    transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+    box-shadow: 0 6px 18px rgba(122,11,11,0.18);
 }
 
 .btn-view:hover {
+    transform: translateY(-2px);
     background: #921616;
+}
+
+.btn-action {
+    padding: 10px 18px;
+    background: linear-gradient(180deg, #495057 0%, #212529 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+    transition: transform 0.2s, background 0.2s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+}
+
+.btn-action:hover {
+    transform: translateY(-1px);
+    background: #343a40;
+}
+
+.view-row {
+    margin-top: 18px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.all-schedule-table-wrapper,
+.teacher-card {
+    width: 100%;
+}
+
+.schedule-table.full-table {
+    width: 100%;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+
+.schedule-table.full-table th,
+.schedule-table.full-table td {
+    padding: 14px 12px;
+}
+
+.schedule-table.full-table th {
+    background: #f1f3f5;
+    color: #2c2f33;
+}
+
+.schedule-table.full-table tr:hover {
+    background: #f8f9fa;
 }
 
 .modal.hidden {
@@ -291,6 +343,37 @@ header p {
     font-size: 1.5em;
     border-bottom: 2px solid rgba(122,11,11,0.12);
     padding-bottom: 10px;
+}
+
+.main-content.all-view-active {
+    grid-template-columns: 1fr;
+}
+
+.main-content.all-view-active .form-panel {
+    display: none;
+}
+
+.all-schedules {
+    display: grid;
+    gap: 20px;
+}
+
+.all-schedule-table-wrapper {
+    overflow-x: auto;
+}
+
+.schedule-table.full-table {
+    width: 100%;
+}
+
+.schedule-table.full-table th,
+.schedule-table.full-table td {
+    padding: 12px 10px;
+}
+
+.schedule-table.full-table th {
+    background: #e9ecef;
+    color: #333;
 }
 
 .empty-message {

@@ -271,9 +271,6 @@ class ScheduleManager {
                             }).join('')}
                         </tbody>
                     </table>
-                    <div class="view-row">
-                        <button class="btn-view" onclick="manager.showTeacherSchedule('${teacherName.replace(/'/g, "\\'")}')">View Timetable</button>
-                    </div>
                 </div>
             `;
         }).join('');
@@ -286,7 +283,6 @@ class ScheduleManager {
             return;
         }
 
-        // Group schedules by teacher and sort
         const grouped = {};
         this.schedules.forEach(s => {
             if (!grouped[s.teacherName]) grouped[s.teacherName] = [];
@@ -295,7 +291,13 @@ class ScheduleManager {
 
         const dayOrder = { 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6 };
         Object.keys(grouped).forEach(teacher => {
-            grouped[teacher].sort((a, b) => (dayOrder[a.day] - dayOrder[b.day]) || a.startTime.localeCompare(b.startTime));
+            grouped[teacher].sort((a, b) => {
+                const dayCompare = (dayOrder[a.day] || 0) - (dayOrder[b.day] || 0);
+                if (dayCompare !== 0) return dayCompare;
+                const sectionCompare = a.sectionYear.localeCompare(b.sectionYear);
+                if (sectionCompare !== 0) return sectionCompare;
+                return a.startTime.localeCompare(b.startTime);
+            });
         });
 
         const teachersSorted = Object.keys(grouped).sort((a, b) => a.localeCompare(b));
@@ -304,7 +306,6 @@ class ScheduleManager {
             const teacherSchedules = grouped[teacherName];
             const conflicts = this.getTeacherConflicts(teacherName);
             const hasConflict = conflicts.length > 0;
-
             return `
                 <div class="teacher-card ${hasConflict ? 'has-conflict' : ''}">
                     <div class="teacher-name">
@@ -316,10 +317,11 @@ class ScheduleManager {
                             ❌ This teacher has ${conflicts.length} scheduling conflict(s).
                         </div>
                     ` : ''}
-                    <table class="schedule-table">
+                    <table class="schedule-table full-table">
                         <thead>
                             <tr>
                                 <th>Subject</th>
+                                <th>Section / Year</th>
                                 <th>Day</th>
                                 <th>Time</th>
                                 <th>Room</th>
@@ -332,6 +334,7 @@ class ScheduleManager {
                                 return `
                                     <tr class="${isConflicted ? 'conflict-row' : ''}">
                                         <td>${schedule.subject}</td>
+                                        <td>${schedule.sectionYear}</td>
                                         <td>${schedule.day}</td>
                                         <td>${this.formatTime(schedule.startTime)} - ${this.formatTime(schedule.endTime)}</td>
                                         <td>${schedule.room}</td>
@@ -341,6 +344,9 @@ class ScheduleManager {
                             }).join('')}
                         </tbody>
                     </table>
+                    <div class="view-row">
+                        <button class="btn-view" onclick="manager.showTeacherSchedule('${teacherName.replace(/'/g, "\\'")}')">View Timetable</button>
+                    </div>
                 </div>
             `;
         }).join('');
@@ -352,6 +358,10 @@ class ScheduleManager {
         const viewType = e.target.dataset.view;
         document.querySelectorAll('.view-content').forEach(view => view.classList.remove('active'));
         document.getElementById(viewType === 'teacher' ? 'teacherView' : 'allView').classList.add('active');
+        const mainContent = document.querySelector('.main-content');
+        if (mainContent) {
+            mainContent.classList.toggle('all-view-active', viewType === 'all');
+        }
     }
 
     showTeacherSchedule(teacherName) {
@@ -467,10 +477,14 @@ class ScheduleManager {
         if (!container) return this.showNotification('Schedule not available to export.', 'error');
         this.createPdfFromElement(container).then(pdf => {
             try {
-                pdf.output('dataurlnewwindow');
+                const blob = pdf.output('blob');
+                const url = URL.createObjectURL(blob);
+                const win = window.open(url, '_blank');
+                if (!win) {
+                    this.showNotification('Popup blocked. Please allow popups or try printing instead.', 'error');
+                }
             } catch (err) {
-                const url = pdf.output('bloburl');
-                window.open(url, '_blank');
+                this.showNotification('Failed to open PDF: ' + err.message, 'error');
             }
         }).catch(err => this.showNotification('Failed to generate PDF: ' + err.message, 'error'));
     }
