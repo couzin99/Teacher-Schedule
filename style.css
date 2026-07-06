@@ -1,0 +1,481 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    /* Maroon / light red / white palette with institution logo as subtle background */
+    background-color: #7a0b0b; /* fallback maroon */
+    background-image: linear-gradient(rgba(255, 255, 255, 0.88), rgba(255, 235, 235, 0.88)), url('assets/logo.png');
+    background-blend-mode: overlay;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 28%;
+    min-height: 100vh;
+    padding: 20px;
+    color: #333;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    background: rgba(255,255,255,0.95);
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.16);
+    overflow: hidden;
+}
+
+header {
+    background: white;
+    color: #6a0f0f; /* maroon text */
+    padding: 26px 30px;
+    text-align: center;
+    border-bottom: 6px solid rgba(106,15,15,0.06);
+}
+
+header h1 {
+    font-size: 2.2em;
+    margin-bottom: 6px;
+}
+
+.header-logo {
+    display: block;
+    width: 90px;
+    height: auto;
+    margin: 0 auto 12px auto;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.9);
+    padding: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+header p {
+    font-size: 1.05em;
+    color: #8b1b1b;
+    opacity: 0.95;
+}
+
+.main-content {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 30px;
+    padding: 30px;
+}
+
+/* Form Styles */
+.form-panel {
+    background: #fff7f7;
+    padding: 25px;
+    border-radius: 10px;
+    height: fit-content;
+    position: sticky;
+    top: 20px;
+    border: 1px solid rgba(122,11,11,0.06);
+}
+
+.form-panel h2 {
+    color: #333;
+    margin-bottom: 20px;
+    font-size: 1.5em;
+    border-bottom: 2px solid rgba(122,11,11,0.12);
+    padding-bottom: 10px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: #333;
+    font-weight: 600;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 1em;
+    transition: border-color 0.3s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #a21b1b;
+    box-shadow: 0 0 6px rgba(162,27,27,0.12);
+}
+
+.btn-add {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(180deg, #a21b1b 0%, #7a0b0b 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 1.05em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-add:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-add:active {
+    transform: translateY(0);
+}
+
+.btn-view {
+    margin-top: 16px;
+    padding: 10px 18px;
+    background: #7a0b0b;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.btn-view:hover {
+    background: #921616;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    z-index: 50;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    max-width: 98%;
+    width: 1100px;
+    max-height: 90vh;
+    padding: 24px;
+    overflow: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    position: relative;
+}
+
+.close-modal {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    border: none;
+    background: transparent;
+    color: #6a0f0f;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.schedule-grid-wrapper {
+    overflow-x: auto;
+}
+
+.schedule-grid {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.schedule-grid th,
+.schedule-grid td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: center;
+    vertical-align: top;
+}
+
+.schedule-grid th {
+    background: #f2e2e2;
+    color: #5f1515;
+}
+
+.slot-label {
+    font-weight: 700;
+    background: #fff1f1;
+    color: #7a0b0b;
+}
+
+/* Notification Styles */
+.notification {
+    margin-top: 15px;
+    padding: 15px;
+    border-radius: 6px;
+    display: none;
+    animation: slideIn 0.3s ease;
+}
+
+.notification.error {
+    display: block;
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.notification.success {
+    display: block;
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Display Panel */
+.display-panel {
+    background: #f8f9fa;
+    padding: 25px;
+    border-radius: 10px;
+}
+
+.view-toggle {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.toggle-btn {
+    padding: 8px 14px;
+    border: 2px solid rgba(122,11,11,0.08);
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+    color: #6a0f0f;
+}
+
+.toggle-btn.active {
+    background: linear-gradient(180deg, #a21b1b 0%, #7a0b0b 100%);
+    color: white;
+    border-color: #7a0b0b;
+}
+
+.view-content {
+    display: none;
+}
+
+.view-content.active {
+    display: block;
+}
+
+.view-content h2 {
+    color: #333;
+    margin-bottom: 20px;
+    font-size: 1.5em;
+    border-bottom: 2px solid rgba(122,11,11,0.12);
+    padding-bottom: 10px;
+}
+
+.empty-message {
+    color: #999;
+    text-align: center;
+    padding: 40px 20px;
+    font-size: 1.1em;
+}
+
+/* Teacher List */
+.teacher-list {
+    display: grid;
+    gap: 20px;
+}
+
+.teacher-card {
+    background: white;
+    border-left: 6px solid #7a0b0b;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.09);
+    transition: box-shadow 0.25s;
+}
+
+.teacher-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.teacher-card.has-conflict {
+    border-left-color: #dc3545;
+    background: #fff5f5;
+}
+
+.teacher-name {
+    font-size: 1.3em;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.conflict-badge {
+    display: inline-block;
+    background: #dc3545;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: 600;
+}
+
+.conflict-notice {
+    background: #f8d7da;
+    color: #721c24;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    font-weight: 600;
+}
+
+.schedule-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.schedule-table th {
+    background: #e9ecef;
+    padding: 10px;
+    text-align: left;
+    font-weight: 600;
+    color: #333;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.schedule-table td {
+    padding: 10px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.schedule-table tr:hover {
+    background: #f8f9fa;
+}
+
+.conflict-row {
+    background: #ffe0e0 !important;
+}
+
+.delete-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background 0.2s;
+}
+
+.delete-btn:hover {
+    background: #c82333;
+}
+
+/* All Schedules View */
+.all-schedules {
+    display: grid;
+    gap: 15px;
+}
+
+.schedule-item {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 5px solid #7a0b0b;
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto;
+    gap: 15px;
+    align-items: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.09);
+}
+
+.schedule-item.conflict {
+    border-left-color: #dc3545;
+    background: #fff5f5;
+}
+
+.schedule-item-content {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.schedule-item-teacher {
+    font-weight: 700;
+    color: #333;
+}
+
+.schedule-item-subject {
+    font-size: 0.95em;
+    color: #666;
+}
+
+.schedule-item-info {
+    text-align: center;
+    font-size: 0.95em;
+}
+
+.schedule-item-label {
+    font-weight: 600;
+    color: #7a0b0b;
+    font-size: 0.8em;
+}
+
+.schedule-item-value {
+    color: #333;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .main-content {
+        grid-template-columns: 1fr;
+    }
+
+    .form-panel {
+        position: static;
+    }
+
+    .schedule-item {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    header h1 {
+        font-size: 1.8em;
+    }
+
+    .schedule-table {
+        font-size: 0.9em;
+    }
+
+    .schedule-table th,
+    .schedule-table td {
+        padding: 8px 5px;
+    }
+}

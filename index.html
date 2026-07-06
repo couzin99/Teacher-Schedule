@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schedule Manager</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <img src="assets/logo.png" alt="College of Engineering logo" class="header-logo">
+            <h1>College of Engineering</h1>
+        </header>
+
+        <div class="main-content">
+            <!-- Left Panel: Form -->
+            <div class="form-panel">
+                <h2>Add New Schedule</h2>
+                <form id="scheduleForm">
+                    <div class="form-group">
+                        <label for="teacherSelect">Teacher:</label>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <select id="teacherSelect" required>
+                                <option value="">-- Select Teacher --</option>
+                            </select>
+                            <input type="text" id="newTeacher" placeholder="Add teacher">
+                            <button type="button" id="addTeacherBtn" class="toggle-btn">Add</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="subject">Subject:</label>
+                        <input type="text" id="subject" required placeholder="e.g., Mathematics">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="sectionYear">Section / Year:</label>
+                        <input type="text" id="sectionYear" required placeholder="e.g., 3A / Grade 11">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="day">Day:</label>
+                        <select id="day" required>
+                            <option value="">-- Select Day --</option>
+                            <option value="Monday">Monday</option>
+                            <option value="Tuesday">Tuesday</option>
+                            <option value="Wednesday">Wednesday</option>
+                            <option value="Thursday">Thursday</option>
+                            <option value="Friday">Friday</option>
+                            <option value="Saturday">Saturday</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="startTime">Start Time:</label>
+                        <input type="time" id="startTime" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="endTime">End Time:</label>
+                        <input type="time" id="endTime" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="roomSelect">Room:</label>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <select id="roomSelect" required>
+                                <option value="">-- Select Room --</option>
+                            </select>
+                            <input type="text" id="newRoom" placeholder="Add room">
+                            <button type="button" id="addRoomBtn" class="toggle-btn">Add</button>
+                        </div>
+                        <small id="roomHint" style="color:#666; display:block; margin-top:6px;">Room list updates based on selected day/time.</small>
+                    </div>
+
+                    <button type="submit" class="btn-add">Add Schedule</button>
+                </form>
+
+                <div id="notification" class="notification"></div>
+            </div>
+
+            <!-- Right Panel: Display -->
+            <div class="display-panel">
+                <div class="view-toggle">
+                    <button class="toggle-btn active" data-view="teacher">By Teacher</button>
+                    <button class="toggle-btn" data-view="all">All Schedules</button>
+                </div>
+
+                <!-- Teacher View -->
+                <div id="teacherView" class="view-content active">
+                    <h2>Teacher Schedules</h2>
+                    <div id="teacherList" class="teacher-list">
+                        <p class="empty-message">No schedules yet. Add one to get started!</p>
+                    </div>
+                </div>
+
+                <!-- All Schedules View -->
+                <div id="allView" class="view-content">
+                    <h2>All Schedules</h2>
+                    <div id="allSchedules" class="all-schedules">
+                        <p class="empty-message">No schedules yet. Add one to get started!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="teacherScheduleModal" class="modal hidden">
+        <div class="modal-content">
+            <button id="closeScheduleModal" class="close-modal">×</button>
+            <h2 id="modalTeacherName">Teacher Schedule</h2>
+            <div class="modal-actions" style="margin-bottom:12px; display:flex; gap:8px;">
+                <button id="viewPdfBtn" class="btn-action">View as PDF</button>
+                <button id="printBtn" class="btn-action">Print Schedule</button>
+            </div>
+            <div id="scheduleGridContainer"></div>
+        </div>
+    </div>
+
+    <!-- PDF / Canvas libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <script src="script.js"></script>
+</body>
+</html>

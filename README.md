@@ -1,0 +1,144 @@
+# Teacher Schedule Manager
+
+A simple web application for managing teacher schedules with automatic conflict detection.
+
+## Features
+
+✅ **Add New Schedules** - Create schedules for teachers with subject, day, time, and room information.
+
+✅ **Conflict Detection** - Automatically detects:
+- **Teacher Conflicts**: Prevents the same teacher from being scheduled at two different places at the same time
+- **Room Conflicts**: Prevents the same room from being double-booked at the same time
+
+✅ **Real-time Notifications** - Get error messages when trying to add conflicting schedules
+
+✅ **Multiple Views**:
+- **Teacher View**: See all schedules grouped by teacher with conflict warnings
+- **All Schedules View**: See all schedules in a sortable list
+
+✅ **Conflict Highlighting** - Conflicting schedules are highlighted in red for easy identification
+
+✅ **Data Persistence** - All schedules are saved in your browser's local storage
+
+✅ **Easy Management** - Delete schedules with a single click
+
+## How to Use
+
+### 1. **Open the Application**
+   - Simply open `index.html` in any web browser
+
+### 2. **Add a Schedule**
+   - Fill in the form on the left side:
+     - **Teacher Name**: Enter the teacher's full name (e.g., "Juan Dela Cruz")
+     - **Subject**: Enter the subject being taught (e.g., "Mathematics")
+     - **Day**: Select the day of the week (Monday - Saturday)
+     - **Start Time**: Select when the class starts (7:00 AM - 7:00 PM)
+     - **End Time**: Select when the class ends (must be after start time)
+     - **Room**: Enter the room number or name (e.g., "Room 101")
+   - Click **"Add Schedule"** to add the schedule
+
+### 3. **Conflict Detection**
+   - If there's a conflict (same teacher scheduled twice or same room booked twice in overlapping times), you'll see an error message
+   - The system **won't allow you to add the schedule** until the conflict is resolved
+   - Example error messages:
+     ```
+     ⚠️ Conflict detected!
+     
+     Teacher conflict: Juan Dela Cruz is already scheduled for 
+     Mathematics in Room 101 from 8:00 AM to 9:00 AM.
+     ```
+
+### 4. **View Schedules**
+   
+   **By Teacher (Default View)**:
+   - Click the **"By Teacher"** tab
+   - See all teachers listed with their schedules
+   - Teachers with conflicts show a **⚠️ CONFLICT** badge
+   - A red warning message appears: "This teacher has X scheduling conflict(s). Please fix before confirming."
+   - Conflicting schedule rows are highlighted in red
+
+   **All Schedules View**:
+   - Click the **"All Schedules"** tab
+   - See all schedules in chronological order (sorted by day and time)
+   - Conflicting schedules are highlighted in red
+   - Shows which schedules have conflicts at a glance
+
+### 5. **Delete a Schedule**
+   - Click the **"Delete"** button next to any schedule
+   - Confirm the deletion when prompted
+   - The schedule will be removed and other schedules will update automatically
+
+## Time Range
+
+- **Operating Hours**: 7:00 AM to 7:00 PM
+- **Days**: Monday through Saturday (Sunday is not included)
+- The system enforces that all classes must fall within this time window
+
+## Example Workflow
+
+1. Add Teacher A for Math on Monday 8:00 AM - 9:00 AM in Room 101
+   ✓ Success
+
+2. Try to add Teacher A for Science on Monday 8:30 AM - 9:30 AM in Room 102
+   ✗ Error: Teacher conflict detected!
+
+3. Delete the first schedule and try again
+   ✓ Success
+
+4. Now add another teacher for Math on Monday 8:00 AM - 9:00 AM in Room 101
+   ✗ Error: Room conflict detected!
+
+## Data Storage
+
+All schedules are automatically saved to your browser's local storage. This means:
+- Your schedules persist even if you close and reopen the browser
+- Data is stored locally on your computer
+- Clearing browser history/cache may delete your schedules
+
+## Browser Compatibility
+
+Works on all modern browsers:
+- Chrome
+- Firefox
+- Safari
+- Edge
+
+## Notes
+
+- Teacher names and room names are case-insensitive (e.g., "juan dela cruz" = "Juan Dela Cruz")
+- The system checks for overlapping times, not just exact matches
+- You can have the same subject taught by different teachers or in different rooms without conflicts
+
+## Logo / Background Image
+
+- To use the attached institution image as the subtle page background, place the image file in the project at `assets/logo.png` (create the `assets` folder if missing). The CSS already references `assets/logo.png`.
+
+## Deployment (share a link)
+
+You can host this as a static website and share a link with your colleague. Two easy free options:
+
+1) GitHub Pages
+   - Create a GitHub repository and push the project files.
+   - In the repository settings enable **Pages** and select the `main` (or `master`) branch and folder (`/root`). GitHub will publish the site at `https://<your-username>.github.io/<repo>`.
+
+2) Netlify (recommended for simple drag-and-drop)
+   - Create a free Netlify account.
+   - Drag-and-drop the project folder (or connect your GitHub repo) into Netlify — it will give you a shareable URL.
+
+Both options host static HTML/CSS/JS sites (no server required). Your colleague will open the shared link in their browser and use the app.
+
+## Local sharing (alternative)
+
+- If you prefer not to host, you can zip the project and send it to your colleague. They can open `index.html` in a browser directly.
+- Or run a simple local server (recommended to avoid some browser restrictions):
+
+```bash
+# (Python 3) from the project folder
+python -m http.server 8000
+# then open http://localhost:8000 in the browser
+```
+
+## Next steps (I can help)
+
+- I can add a small export/import button so your colleague can import schedules easily.
+- Or I can set this up on GitHub Pages or Netlify for you and give you the live link — tell me which you prefer and I will walk you through required credentials.
