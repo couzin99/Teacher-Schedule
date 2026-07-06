@@ -85,6 +85,7 @@
                 <div class="view-toggle">
                     <button class="toggle-btn active" data-view="teacher">By Teacher</button>
                     <button class="toggle-btn" data-view="all">All Schedules</button>
+                    <button class="toggle-btn" data-view="manage">Manage Lists</button>
                 </div>
 
                 <!-- Teacher View -->
@@ -100,6 +101,25 @@
                     <h2>All Schedules</h2>
                     <div id="allSchedules" class="all-schedules">
                         <p class="empty-message">No schedules yet. Add one to get started!</p>
+                    </div>
+                </div>
+
+                <!-- Manage Lists View -->
+                <div id="manageView" class="view-content">
+                    <h2>Manage Teachers & Rooms</h2>
+                    <div class="manage-sections">
+                        <div class="manage-section">
+                            <h3>Teachers</h3>
+                            <div id="teacherListManage" class="manage-list">
+                                <p class="empty-message">No teachers added yet.</p>
+                            </div>
+                        </div>
+                        <div class="manage-section">
+                            <h3>Rooms</h3>
+                            <div id="roomListManage" class="manage-list">
+                                <p class="empty-message">No rooms added yet.</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

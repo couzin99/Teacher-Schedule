@@ -376,6 +376,77 @@ header p {
     color: #333;
 }
 
+.manage-sections {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+.manage-section h3 {
+    margin-bottom: 16px;
+    color: #6a0f0f;
+    font-size: 1.2em;
+}
+
+.manage-list {
+    display: grid;
+    gap: 12px;
+}
+
+.manage-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    background: white;
+    border-radius: 10px;
+    border: 1px solid rgba(122,11,11,0.08);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.manage-item-title {
+    font-weight: 700;
+    color: #342626;
+    margin-bottom: 4px;
+}
+
+.manage-item-subtext {
+    color: #6a6a6a;
+    font-size: 0.95em;
+}
+
+.manage-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.edit-btn {
+    padding: 10px 14px;
+    background: #ffc107;
+    color: #212529;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+    transition: transform 0.2s, background 0.2s;
+}
+
+.edit-btn:hover {
+    transform: translateY(-1px);
+    background: #e0a800;
+}
+
+.manage-list .delete-btn {
+    margin: 0;
+    padding: 10px 14px;
+}
+
+@media (max-width: 1024px) {
+    .manage-sections {
+        grid-template-columns: 1fr;
+    }
+}
+
 .empty-message {
     color: #999;
     text-align: center;

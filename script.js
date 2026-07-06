@@ -218,6 +218,7 @@ class ScheduleManager {
     render() {
         this.renderTeacherView();
         this.renderAllView();
+        this.renderManageView();
     }
 
     renderTeacherView() {
@@ -352,12 +353,115 @@ class ScheduleManager {
         }).join('');
     }
 
+    renderManageView() {
+        const teacherListManage = document.getElementById('teacherListManage');
+        const roomListManage = document.getElementById('roomListManage');
+
+        if (this.teachers.length === 0) {
+            teacherListManage.innerHTML = '<p class="empty-message">No teachers added yet.</p>';
+        } else {
+            teacherListManage.innerHTML = this.teachers.sort((a, b) => a.localeCompare(b)).map(teacherName => {
+                const count = this.schedules.filter(s => s.teacherName === teacherName).length;
+                return `
+                    <div class="manage-item">
+                        <div>
+                            <div class="manage-item-title">${teacherName}</div>
+                            <div class="manage-item-subtext">${count} schedule${count === 1 ? '' : 's'}</div>
+                        </div>
+                        <div class="manage-actions">
+                            <button class="edit-btn" onclick="manager.handleEditTeacher('${teacherName.replace(/'/g, "\\'")}')">Edit</button>
+                            <button class="delete-btn" onclick="manager.handleDeleteTeacher('${teacherName.replace(/'/g, "\\'")}')">Delete</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        if (this.rooms.length === 0) {
+            roomListManage.innerHTML = '<p class="empty-message">No rooms added yet.</p>';
+        } else {
+            roomListManage.innerHTML = this.rooms.sort((a, b) => a.localeCompare(b)).map(roomName => {
+                const count = this.schedules.filter(s => s.room === roomName).length;
+                return `
+                    <div class="manage-item">
+                        <div>
+                            <div class="manage-item-title">${roomName}</div>
+                            <div class="manage-item-subtext">${count} schedule${count === 1 ? '' : 's'}</div>
+                        </div>
+                        <div class="manage-actions">
+                            <button class="edit-btn" onclick="manager.handleEditRoom('${roomName.replace(/'/g, "\\'")}')">Edit</button>
+                            <button class="delete-btn" onclick="manager.handleDeleteRoom('${roomName.replace(/'/g, "\\'")}')">Delete</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+    }
+
+    handleEditTeacher(oldName) {
+        const newNameRaw = prompt('Enter a new name for the teacher:', oldName);
+        const newName = newNameRaw ? newNameRaw.trim() : '';
+        if (!newName) return;
+        if (this.teachers.some(t => t.toLowerCase() === newName.toLowerCase() && t !== oldName)) {
+            return this.showNotification('A teacher with that name already exists.', 'error');
+        }
+        const index = this.teachers.findIndex(t => t === oldName);
+        if (index === -1) return;
+        this.teachers[index] = newName;
+        this.schedules = this.schedules.map(s => s.teacherName === oldName ? { ...s, teacherName: newName } : s);
+        this.saveTeachers();
+        this.saveSchedules();
+        this.render();
+        this.showNotification('Teacher name updated.', 'success');
+    }
+
+    handleDeleteTeacher(name) {
+        const hasSchedules = this.schedules.some(s => s.teacherName === name);
+        if (hasSchedules) {
+            return this.showNotification('Remove schedule entries for this teacher before deleting.', 'error');
+        }
+        if (!confirm(`Delete teacher ${name}?`)) return;
+        this.teachers = this.teachers.filter(t => t !== name);
+        this.saveTeachers();
+        this.render();
+        this.showNotification('Teacher deleted.', 'success');
+    }
+
+    handleEditRoom(oldName) {
+        const newNameRaw = prompt('Enter a new name for the room:', oldName);
+        const newName = newNameRaw ? newNameRaw.trim() : '';
+        if (!newName) return;
+        if (this.rooms.some(r => r.toLowerCase() === newName.toLowerCase() && r !== oldName)) {
+            return this.showNotification('A room with that name already exists.', 'error');
+        }
+        const index = this.rooms.findIndex(r => r === oldName);
+        if (index === -1) return;
+        this.rooms[index] = newName;
+        this.schedules = this.schedules.map(s => s.room === oldName ? { ...s, room: newName } : s);
+        this.saveRooms();
+        this.saveSchedules();
+        this.render();
+        this.showNotification('Room name updated.', 'success');
+    }
+
+    handleDeleteRoom(name) {
+        const hasSchedules = this.schedules.some(s => s.room === name);
+        if (hasSchedules) {
+            return this.showNotification('Remove schedule entries for this room before deleting.', 'error');
+        }
+        if (!confirm(`Delete room ${name}?`)) return;
+        this.rooms = this.rooms.filter(r => r !== name);
+        this.saveRooms();
+        this.render();
+        this.showNotification('Room deleted.', 'success');
+    }
+
     switchView(e) {
         document.querySelectorAll('.toggle-btn').forEach(btn => btn.classList.remove('active'));
         e.target.classList.add('active');
         const viewType = e.target.dataset.view;
         document.querySelectorAll('.view-content').forEach(view => view.classList.remove('active'));
-        document.getElementById(viewType === 'teacher' ? 'teacherView' : 'allView').classList.add('active');
+        document.getElementById(viewType === 'teacher' ? 'teacherView' : viewType === 'all' ? 'allView' : 'manageView').classList.add('active');
         const mainContent = document.querySelector('.main-content');
         if (mainContent) {
             mainContent.classList.toggle('all-view-active', viewType === 'all');
