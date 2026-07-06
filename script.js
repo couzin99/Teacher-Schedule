@@ -4,6 +4,7 @@ class ScheduleManager {
         this.schedules = this.loadSchedules();
         this.teachers = this.loadTeachers();
         this.rooms = this.loadRooms();
+        this.migrateSchedules();
         this.init();
     }
 
@@ -72,7 +73,7 @@ class ScheduleManager {
 
         const teacherName = document.getElementById('teacherSelect').value;
         const subject = document.getElementById('subject').value.trim();
-        const sectionYear = document.getElementById('sectionYear').value.trim();
+        const courseYear = document.getElementById('courseYear').value.trim();
         const day = document.getElementById('day').value;
         const startTime = document.getElementById('startTime').value;
         const endTime = document.getElementById('endTime').value;
@@ -82,7 +83,7 @@ class ScheduleManager {
             id: Date.now(),
             teacherName,
             subject,
-            sectionYear,
+            courseYear,
             day,
             startTime,
             endTime,
@@ -116,7 +117,7 @@ class ScheduleManager {
     }
 
     validateSchedule(schedule) {
-        if (!schedule.teacherName || !schedule.subject || !schedule.sectionYear || !schedule.day || !schedule.startTime || !schedule.endTime || !schedule.room) {
+        if (!schedule.teacherName || !schedule.subject || !schedule.courseYear || !schedule.day || !schedule.startTime || !schedule.endTime || !schedule.room) {
             return 'Please fill in all fields.';
         }
 
@@ -126,8 +127,9 @@ class ScheduleManager {
 
         const [sh] = schedule.startTime.split(':').map(x => parseInt(x));
         const [eh, em] = schedule.endTime.split(':').map(x => parseInt(x));
-        if (sh < 7 || eh > 19 || (eh === 19 && em > 0)) {
-            return 'Classes must be between 7:00 AM and 7:00 PM.';
+        // Allow classes from 7:00 up to 21:00 (9:00 PM)
+        if (sh < 7 || eh > 21 || (eh === 21 && em > 0)) {
+            return 'Classes must be between 7:00 AM and 9:00 PM.';
         }
 
         return null;
@@ -249,7 +251,7 @@ class ScheduleManager {
                         <thead>
                             <tr>
                                 <th>Subject</th>
-                                <th>Section / Year</th>
+                                <th>Course &amp; Year</th>
                                 <th>Day</th>
                                 <th>Time</th>
                                 <th>Room</th>
@@ -262,7 +264,7 @@ class ScheduleManager {
                                 return `
                                     <tr class="${isConflicted ? 'conflict-row' : ''}">
                                         <td>${schedule.subject}</td>
-                                        <td>${schedule.sectionYear}</td>
+                                        <td>${schedule.courseYear}</td>
                                         <td>${schedule.day}</td>
                                         <td>${this.formatTime(schedule.startTime)} - ${this.formatTime(schedule.endTime)}</td>
                                         <td>${schedule.room}</td>
@@ -295,8 +297,8 @@ class ScheduleManager {
             grouped[teacher].sort((a, b) => {
                 const dayCompare = (dayOrder[a.day] || 0) - (dayOrder[b.day] || 0);
                 if (dayCompare !== 0) return dayCompare;
-                const sectionCompare = a.sectionYear.localeCompare(b.sectionYear);
-                if (sectionCompare !== 0) return sectionCompare;
+                const courseCompare = a.courseYear.localeCompare(b.courseYear);
+                if (courseCompare !== 0) return courseCompare;
                 return a.startTime.localeCompare(b.startTime);
             });
         });
@@ -322,7 +324,7 @@ class ScheduleManager {
                         <thead>
                             <tr>
                                 <th>Subject</th>
-                                <th>Section / Year</th>
+                                <th>Course &amp; Year</th>
                                 <th>Day</th>
                                 <th>Time</th>
                                 <th>Room</th>
@@ -335,7 +337,7 @@ class ScheduleManager {
                                 return `
                                     <tr class="${isConflicted ? 'conflict-row' : ''}">
                                         <td>${schedule.subject}</td>
-                                        <td>${schedule.sectionYear}</td>
+                                        <td>${schedule.courseYear}</td>
                                         <td>${schedule.day}</td>
                                         <td>${this.formatTime(schedule.startTime)} - ${this.formatTime(schedule.endTime)}</td>
                                         <td>${schedule.room}</td>
@@ -416,13 +418,18 @@ class ScheduleManager {
     }
 
     handleDeleteTeacher(name) {
-        const hasSchedules = this.schedules.some(s => s.teacherName === name);
-        if (hasSchedules) {
-            return this.showNotification('Remove schedule entries for this teacher before deleting.', 'error');
+        const related = this.schedules.filter(s => s.teacherName === name).length;
+        if (related > 0) {
+            const cascade = confirm(`${name} has ${related} schedule(s). Click OK to delete the teacher and all their schedules, or Cancel to keep them.`);
+            if (!cascade) return this.showNotification('Deletion cancelled. Remove schedules first to delete teacher.', 'error');
+            // remove schedules and teacher
+            this.schedules = this.schedules.filter(s => s.teacherName !== name);
+        } else {
+            if (!confirm(`Delete teacher ${name}?`)) return;
         }
-        if (!confirm(`Delete teacher ${name}?`)) return;
         this.teachers = this.teachers.filter(t => t !== name);
         this.saveTeachers();
+        this.saveSchedules();
         this.render();
         this.showNotification('Teacher deleted.', 'success');
     }
@@ -445,13 +452,18 @@ class ScheduleManager {
     }
 
     handleDeleteRoom(name) {
-        const hasSchedules = this.schedules.some(s => s.room === name);
-        if (hasSchedules) {
-            return this.showNotification('Remove schedule entries for this room before deleting.', 'error');
+        const related = this.schedules.filter(s => s.room === name).length;
+        if (related > 0) {
+            const cascade = confirm(`${name} is used in ${related} schedule(s). Click OK to delete the room and remove those schedule entries, or Cancel to keep them.`);
+            if (!cascade) return this.showNotification('Deletion cancelled. Remove schedules first to delete room.', 'error');
+            // remove schedules that reference the room
+            this.schedules = this.schedules.filter(s => s.room !== name);
+        } else {
+            if (!confirm(`Delete room ${name}?`)) return;
         }
-        if (!confirm(`Delete room ${name}?`)) return;
         this.rooms = this.rooms.filter(r => r !== name);
         this.saveRooms();
+        this.saveSchedules();
         this.render();
         this.showNotification('Room deleted.', 'success');
     }
@@ -470,9 +482,22 @@ class ScheduleManager {
 
     showTeacherSchedule(teacherName) {
         const teacherSchedules = this.getTeacherSchedules(teacherName);
-        const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        const slots = this.generateTimeSlots();
-        const grid = this.buildScheduleGrid(teacherSchedules, dayOrder, slots);
+
+        // Determine days to display: default Mon-Fri, include Saturday only if teacher has classes there
+        const allDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const teacherDays = new Set(teacherSchedules.map(s => s.day));
+        const daysToShow = allDays.filter(d => d !== 'Saturday').filter(d => true);
+        if (teacherDays.has('Saturday')) daysToShow.push('Saturday');
+
+        // Determine display end time: show until 5pm unless teacher has classes after 5pm
+        const latestEndMin = teacherSchedules.reduce((max, s) => Math.max(max, this.timeToMinutes(s.endTime)), 0);
+        const defaultEnd = 17 * 60; // 5:00 PM
+        const maxAllowedEnd = 21 * 60; // 9:00 PM
+        let displayEnd = defaultEnd;
+        if (latestEndMin > defaultEnd) displayEnd = Math.min(latestEndMin, maxAllowedEnd);
+
+        const slots = this.generateTimeSlots().filter(slot => this.timeToMinutes(slot.start) < displayEnd);
+        const grid = this.buildScheduleGrid(teacherSchedules, daysToShow, slots);
 
         document.getElementById('modalTeacherName').textContent = `${teacherName} — Plotted Schedule`;
         document.getElementById('scheduleGridContainer').innerHTML = grid;
@@ -486,7 +511,8 @@ class ScheduleManager {
     generateTimeSlots() {
         const slots = [];
         let minutes = 7 * 60;
-        while (minutes < 19 * 60) {
+        // generate 30-min slots from 7:00 up to 21:00 (9:00 PM)
+        while (minutes < 21 * 60) {
             const startH = Math.floor(minutes / 60);
             const startM = minutes % 60;
             const endMinutes = minutes + 30;
@@ -504,26 +530,53 @@ class ScheduleManager {
     }
 
     buildScheduleGrid(schedules, days, slots) {
-        const cells = {};
+        // Build a grid that merges consecutive slots into a single cell using rowspan
+        // Prepare a map for each day with slot placeholders
+        const slotCount = slots.length;
+        const dayCells = {};
+        days.forEach(day => {
+            dayCells[day] = new Array(slotCount).fill(null);
+        });
+
+        // For each schedule, compute start index and span (number of slots)
         schedules.forEach(schedule => {
+            const day = schedule.day;
+            if (!dayCells[day]) return; // skip days not displayed
             const scheduleStart = this.timeToMinutes(schedule.startTime);
             const scheduleEnd = this.timeToMinutes(schedule.endTime);
-            slots.forEach(slot => {
-                const slotStart = this.timeToMinutes(slot.start);
-                const slotEnd = this.timeToMinutes(slot.end);
-                if (scheduleStart < slotEnd && slotStart < scheduleEnd) {
-                    const key = `${slot.label}-${schedule.day}`;
-                    cells[key] = `${schedule.subject} | ${schedule.sectionYear} | ${schedule.room}`;
-                }
-            });
+            // find first slot index where slot.end > scheduleStart
+            let startIdx = slots.findIndex(slot => this.timeToMinutes(slot.end) > scheduleStart);
+            if (startIdx === -1) return;
+            // find last slot index where slot.start < scheduleEnd
+            let endIdx = -1;
+            for (let i = startIdx; i < slots.length; i++) {
+                if (this.timeToMinutes(slots[i].start) < scheduleEnd) endIdx = i;
+                else break;
+            }
+            if (endIdx === -1) return;
+            const span = endIdx - startIdx + 1;
+            const content = `
+                <div class="cell-content">
+                    <div class="subject">${schedule.subject}</div>
+                    <div class="section">${schedule.courseYear}</div>
+                    <div class="room">${schedule.room}</div>
+                </div>
+            `;
+            // Place content at startIdx and mark following indices as skipped
+            dayCells[day][startIdx] = { content, span, id: schedule.id };
+            for (let k = startIdx + 1; k <= endIdx; k++) {
+                dayCells[day][k] = { skip: true };
+            }
         });
 
         const headerRow = ['<tr><th>Time</th>' + days.map(day => `<th>${day}</th>`).join('') + '</tr>'];
-        const rows = slots.map(slot => {
+        const rows = slots.map((slot, rowIdx) => {
             const cols = days.map(day => {
-                const key = `${slot.label}-${day}`;
-                const content = cells[key] || '';
-                return `<td>${content}</td>`;
+                const cell = dayCells[day][rowIdx];
+                if (!cell) return '<td></td>';
+                if (cell.skip) return '';
+                const rowspanAttr = cell.span && cell.span > 1 ? ` rowspan="${cell.span}"` : '';
+                return `<td${rowspanAttr}>${cell.content}</td>`;
             }).join('');
             return `<tr><td class="slot-label">${slot.label}</td>${cols}</tr>`;
         });
@@ -626,6 +679,20 @@ class ScheduleManager {
 
     saveSchedules() { localStorage.setItem('schedules', JSON.stringify(this.schedules)); }
     loadSchedules() { const data = localStorage.getItem('schedules'); return data ? JSON.parse(data) : []; }
+
+    // Migrate older stored schedules using `sectionYear` to `courseYear`
+    migrateSchedules() {
+        let changed = false;
+        this.schedules = this.schedules.map(s => {
+            if (s && s.sectionYear && !s.courseYear) {
+                s.courseYear = s.sectionYear;
+                delete s.sectionYear;
+                changed = true;
+            }
+            return s;
+        });
+        if (changed) this.saveSchedules();
+    }
 
     // teachers & rooms
     saveTeachers() { localStorage.setItem('teachers', JSON.stringify(this.teachers)); }
