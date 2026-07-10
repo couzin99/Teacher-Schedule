@@ -45,9 +45,9 @@ class ScheduleManager {
 
         // PDF / Print buttons in modal
         const viewPdfBtn = document.getElementById('viewPdfBtn');
-        const printBtn = document.getElementById('printBtn');
+        const viewLoadBtn = document.getElementById('viewLoadBtn');
         if (viewPdfBtn) viewPdfBtn.addEventListener('click', () => this.viewSchedulePdf());
-        if (printBtn) printBtn.addEventListener('click', () => this.printSchedule());
+        if (viewLoadBtn) viewLoadBtn.addEventListener('click', () => this.viewTeacherLoadPdf());
 
         // update available rooms when day/time changes
         ['day', 'startTime', 'endTime'].forEach(id => {
@@ -127,12 +127,20 @@ class ScheduleManager {
         const startTime = document.getElementById('startTime').value;
         const endTime = document.getElementById('endTime').value;
         const room = document.getElementById('roomSelect').value;
+        const courseCode = (document.getElementById('courseCode') && document.getElementById('courseCode').value) ? document.getElementById('courseCode').value.trim() : '';
+        const unitsVal = (document.getElementById('units') && document.getElementById('units').value) ? parseInt(document.getElementById('units').value, 10) : 3;
+        const building = (document.getElementById('building') && document.getElementById('building').value) ? document.getElementById('building').value.trim() : '';
+        const overload = (document.getElementById('overload') && document.getElementById('overload').value) ? document.getElementById('overload').value.trim() : '';
 
         const schedule = {
             id: Date.now(),
             teacherName,
             subject,
             courseYear,
+            courseCode,
+            units: unitsVal,
+            building,
+            overload,
             day,
             startTime,
             endTime,
@@ -647,6 +655,10 @@ class ScheduleManager {
     showTeacherSchedule(teacherName) {
         const teacherSchedules = this.getTeacherSchedules(teacherName);
 
+        // mark modal with current teacher for use by print/export actions
+        const modal = document.getElementById('teacherScheduleModal');
+        if (modal) modal.dataset.teacher = teacherName;
+
         // Determine days to display: default Mon-Fri, include Saturday only if teacher has classes there
         const allDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         const teacherDays = new Set(teacherSchedules.map(s => s.day));
@@ -739,22 +751,8 @@ class ScheduleManager {
 
         const headerRow = ['<tr><th>Time</th>' + days.map(day => `<th>${day}</th>`).join('') + '</tr>'];
         const rows = [];
-        const lunchStartIdx = slots.findIndex(s => s.start === '12:00');
         for (let rowIdx = 0; rowIdx < slots.length; rowIdx++) {
-            // If this is the start of the lunch hour, render a single merged "LUNCH" row spanning all days and skip the next slot
-            if (rowIdx === lunchStartIdx) {
-                // create a combined time label from this slot start to the next slot end (12:00 - 1:00 PM)
-                const nextSlot = slots[rowIdx + 1];
-                const timeLabel = nextSlot ? `${slots[rowIdx].label.split(' - ')[0]} - ${nextSlot.label.split(' - ')[1]}` : slots[rowIdx].label;
-                rows.push(`<tr><td class="slot-label">${timeLabel}</td><td class="lunch-cell" colspan="${days.length}">LUNCH</td></tr>`);
-                rowIdx++; // skip the 12:30 slot
-                continue;
-            }
-
-            // Normal row rendering
             const cols = days.map(day => {
-                // If this slot is within the lunch hour, don't render per-day cells (they're replaced by the LUNCH row)
-                if (lunchStartIdx !== -1 && (rowIdx === lunchStartIdx || rowIdx === lunchStartIdx + 1)) return '';
                 const cell = dayCells[day][rowIdx];
                 if (!cell) return '<td></td>';
                 if (cell.skip) return '';
@@ -860,6 +858,198 @@ class ScheduleManager {
                 this.showNotification('Failed to print PDF: ' + err.message, 'error');
             }
         }).catch(err => this.showNotification('Failed to generate PDF: ' + err.message, 'error'));
+    }
+
+    // Build a standalone element representing the teacher's load (landscape A4 style)
+    generateTeacherLoadElement(teacherName) {
+        const schedules = this.getTeacherSchedules(teacherName).slice().sort((a,b) => {
+            const dayOrder = { 'Monday':1,'Tuesday':2,'Wednesday':3,'Thursday':4,'Friday':5,'Saturday':6 };
+            const d = (dayOrder[a.day] || 0) - (dayOrder[b.day] || 0);
+            if (d !== 0) return d;
+            if (a.startTime !== b.startTime) return a.startTime.localeCompare(b.startTime);
+            return a.courseYear.localeCompare(b.courseYear);
+        });
+
+        const container = document.createElement('div');
+        container.className = 'teacher-load-pdf';
+        container.style.fontFamily = 'Arial, Helvetica, sans-serif';
+        container.style.padding = '18px';
+        container.style.color = '#222';
+        container.style.background = '#fff';
+        container.style.width = '1000px';
+
+        // Header: logos and institution text on the same centered row, with title block below
+        const header = `
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 auto 6px; font-size:11.6px; line-height:1.12; width:840px; max-width:100%;">
+                <div style="flex:0 0 78px; display:flex; justify-content:center; align-items:center;">
+                    <img src="assets/CSAP-LOGO.png" style="width:72px; max-width:100%; height:auto; object-fit:contain;">
+                </div>
+                <div style="flex:1 1 0; min-width:0; max-width:520px; text-align:center; padding:0 6px;">
+                    <div style="font-weight:600;">Colegio de San Antonio de Padua, Inc.</div>
+                    <div>Supervised by Lasallian School Supervision Office</div>
+                    <div>Ramon M. Durano, Foundation Compound</div>
+                    <div>Guinsay, Danao City</div>
+                </div>
+                <div style="flex:0 0 78px; display:flex; justify-content:center; align-items:center;">
+                    <img src="assets/logo.png" style="width:72px; max-width:100%; height:auto; object-fit:contain;">
+                </div>
+            </div>
+
+            <div style="text-align:center; margin-top:6px; margin-bottom:10px;">
+                <div style="font-size:14px; font-weight:700;">COLLEGE OF ENGINEERING</div>
+                <div style="font-size:13px; font-weight:700; margin-top:6px;">INSTRUCTOR'S LOAD</div>
+                <div style="font-size:12px; margin-top:4px;">School Year: 2026 - 2027 (1st Semester)</div>
+            </div>
+        `;
+
+        // Build table rows
+        const rows = schedules.map(s => {
+            // compute units (use stored units if present, otherwise default 3) and hours
+            const units = (s.units !== undefined && s.units !== null) ? (parseInt(s.units, 10) || 0) : 3;
+            const mins = this.timeToMinutes(s.endTime) - this.timeToMinutes(s.startTime);
+            const hoursDecimal = (mins / 60).toFixed(2);
+            const timeStr = `${this.formatTime(s.startTime)} - ${this.formatTime(s.endTime)}`;
+            return `<tr>
+                <td style="border:1px solid #000; padding:6px;">${s.courseCode || ''}</td>
+                <td style="border:1px solid #000; padding:6px;">${s.subject}</td>
+                <td style="border:1px solid #000; padding:6px;">${s.courseYear}</td>
+                <td style="border:1px solid #000; padding:6px; text-align:center;">${units}</td>
+                <td style="border:1px solid #000; padding:6px; text-align:center;">${hoursDecimal}</td>
+                <td style="border:1px solid #000; padding:6px; text-align:center;">${s.overload || ''}</td>
+                <td style="border:1px solid #000; padding:6px;">${timeStr}</td>
+                <td style="border:1px solid #000; padding:6px; text-align:center;">${s.day}</td>
+                <td style="border:1px solid #000; padding:6px;">${s.building || ''}</td>
+                <td style="border:1px solid #000; padding:6px;">${s.room}</td>
+            </tr>`;
+        }).join('');
+
+        // Totals (sum units/hours)
+        const totalUnits = schedules.reduce((sum, s) => sum + ((s.units !== undefined && s.units !== null) ? (parseInt(s.units,10) || 0) : 3), 0);
+        const totalHours = schedules.reduce((sum, s) => sum + ((this.timeToMinutes(s.endTime) - this.timeToMinutes(s.startTime)) / 60), 0).toFixed(2);
+
+        const table = `
+            <div style="margin-top:10px; font-size:12px;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+                    <div style="flex:1;">
+                        <div><strong>Name of Instructor</strong> &nbsp;&nbsp;&nbsp;&nbsp;: ${teacherName}</div>
+                        <div style="margin-top:6px;"><strong>Effective Date</strong> &nbsp;&nbsp;&nbsp;&nbsp;: </div>
+                    </div>
+                    <div style="width:320px; text-align:right;">
+                        <div><strong>Regular Teaching Load</strong> &nbsp;&nbsp;: ${totalUnits}</div>
+                        <div style="margin-top:6px;"><strong>Overload</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: </div>
+                    </div>
+                </div>
+
+                <table style="border-collapse:collapse; width:100%; font-size:12px;">
+                    <thead>
+                        <tr>
+                            <th style="border:1px solid #000; padding:6px;">Course Code</th>
+                            <th style="border:1px solid #000; padding:6px;">Descriptive Title</th>
+                            <th style="border:1px solid #000; padding:6px;">Section and Year</th>
+                            <th style="border:1px solid #000; padding:6px;">Units</th>
+                            <th style="border:1px solid #000; padding:6px;">No. of Hours</th>
+                            <th style="border:1px solid #000; padding:6px;">Overload</th>
+                            <th style="border:1px solid #000; padding:6px;">Time</th>
+                            <th style="border:1px solid #000; padding:6px;">Days</th>
+                            <th style="border:1px solid #000; padding:6px;">BLDG</th>
+                            <th style="border:1px solid #000; padding:6px;">Room</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                        <tr>
+                            <td colspan="3" style="border:1px solid #000; padding:6px; text-align:right;"><strong>TOTAL</strong></td>
+                            <td style="border:1px solid #000; padding:6px; text-align:center;"><strong>${totalUnits}</strong></td>
+                            <td style="border:1px solid #000; padding:6px; text-align:center;"><strong>${totalHours}</strong></td>
+                            <td colspan="5" style="border:1px solid #000; padding:6px;"></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Signature / footer block -->
+                <div style="display:flex; justify-content:space-between; margin-top:28px; font-size:11px;">
+                    <div style="width:28%; text-align:left;">
+                        <div style="margin-bottom:24px;">Conformed by:</div>
+                        <div style="margin-bottom:14px; display:inline-block; border-bottom:1px solid #000; width:64%; padding-bottom:3px;">&nbsp;</div>
+                        <div style="margin-top:10px; font-style:italic;">Instructor</div>
+                    </div>
+                    <div style="width:28%; text-align:center;">
+                        <div style="margin-bottom:24px;">Prepared by:</div>
+                        <div style="margin-bottom:14px; display:inline-block; border-bottom:1px solid #000; width:68%; padding-bottom:3px;">ENGR. SHEM JAY M. TARIAO</div>
+                        <div style="margin-top:10px; font-size:11px;">&nbsp;</div>
+                    </div>
+                    <div style="width:28%; text-align:center;">
+                        <div style="margin-bottom:24px;">Recommending Approval</div>
+                        <div style="margin-bottom:14px; display:inline-block; border-bottom:1px solid #000; width:68%; padding-bottom:3px;">DR. ALBERTO A. JUMAO-AS JR.</div>
+                        <div style="margin-top:10px; font-size:11px;">VP Academics and Research</div>
+                    </div>
+                </div>
+
+                <div style="display:flex; justify-content:center; gap:100px; margin-top:26px; font-size:11px;">
+                    <div style="width:34%; min-width:240px; text-align:center;">
+                        <div style="margin-bottom:24px;">Reviewed by:</div>
+                        <div style="margin-bottom:14px; display:inline-block; border-bottom:1px solid #000; width:86%; padding-bottom:3px;">ENGR. EMMANUEL M. NADELA</div>
+                        <div style="margin-top:10px; font-size:11px;">Department Dean</div>
+                    </div>
+                    <div style="width:34%; min-width:240px; text-align:center;">
+                        <div style="margin-bottom:24px;">Approved by:</div>
+                        <div style="margin-bottom:14px; display:inline-block; border-bottom:1px solid #000; width:86%; padding-bottom:3px;">DR. GENESA P. PARAGADOS</div>
+                        <div style="margin-top:10px; font-size:11px;">President</div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        container.innerHTML = header + table;
+        return container;
+    }
+
+    // View the teacher load as PDF in a new tab
+    viewTeacherLoadPdf() {
+        const modal = document.getElementById('teacherScheduleModal');
+        const teacher = modal && modal.dataset ? modal.dataset.teacher : null;
+        if (!teacher) return this.showNotification('No teacher selected to export.', 'error');
+        const el = this.generateTeacherLoadElement(teacher);
+        document.body.appendChild(el);
+        this.createPdfFromElement(el).then(pdf => {
+            try {
+                const blob = pdf.output('blob');
+                const url = URL.createObjectURL(blob);
+                const win = window.open(url, '_blank');
+                if (!win) this.showNotification('Popup blocked. Please allow popups or try printing instead.', 'error');
+            } catch (err) {
+                this.showNotification('Failed to open PDF: ' + err.message, 'error');
+            } finally {
+                if (el && el.parentNode) el.parentNode.removeChild(el);
+            }
+        }).catch(err => {
+            if (el && el.parentNode) el.parentNode.removeChild(el);
+            this.showNotification('Failed to generate PDF: ' + err.message, 'error');
+        });
+    }
+
+    // Generate PDF for teacher load and open print dialog
+    printTeacherLoad() {
+        const modal = document.getElementById('teacherScheduleModal');
+        const teacher = modal && modal.dataset ? modal.dataset.teacher : null;
+        if (!teacher) return this.showNotification('No teacher selected to print.', 'error');
+        const el = this.generateTeacherLoadElement(teacher);
+        document.body.appendChild(el);
+        this.createPdfFromElement(el).then(pdf => {
+            try {
+                const url = pdf.output('bloburl');
+                const w = window.open(url);
+                if (!w) return this.showNotification('Unable to open print window (popup blocked).', 'error');
+                setTimeout(() => { try { w.focus(); w.print(); } catch (e) { /* ignore */ } }, 700);
+            } catch (err) {
+                this.showNotification('Failed to print PDF: ' + err.message, 'error');
+            } finally {
+                if (el && el.parentNode) el.parentNode.removeChild(el);
+            }
+        }).catch(err => {
+            if (el && el.parentNode) el.parentNode.removeChild(el);
+            this.showNotification('Failed to generate PDF: ' + err.message, 'error');
+        });
     }
 
     timeToMinutes(time) {
